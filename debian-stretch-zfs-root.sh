@@ -24,18 +24,33 @@
 # with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 #
 
+function hassize {
+  local SIZE="${1//[!0-9]/}"
+  SIZE=${SIZE:-0}
+  test $(echo $SIZE'>'0 | bc -l) -eq 1
+}
+
 ### Static settings
 
-ZPOOL=rpool
-TARGETDIST=stretch
+: ${ZPOOL=rpool}
+: ${TARGETDIST=stretch}
 
-PARTBIOS=1
-PARTEFI=2
-PARTZFS=3
+: ${PARTBIOS=1}
+: ${PARTEFI=2}
+: ${PARTZFS=3}
 
-SIZESWAP=2G
-SIZETMP=3G
-SIZEVARTMP=3G
+: ${SIZESWAP=2G}
+: ${SIZETMP=3G}
+: ${SIZEVARTMP=3G}
+
+hassize $SIZESWAP \
+	&& FSTABSWAP="/dev/zvol/$ZPOOL/swap   none            swap    defaults        0       0"
+
+hassize $SIZETMP \
+	&& QUOTATMP="-o quota=$SIZETMP"
+
+hassize $SITEVARTMP \
+	&& QUOTAVARTMP="-o quota=$SIZEVARTMP"
 
 ### User settings
 
@@ -207,7 +222,7 @@ zfs create $ZPOOL/ROOT
 zfs create -o mountpoint=/ $ZPOOL/ROOT/debian-$TARGETDIST
 zpool set bootfs=$ZPOOL/ROOT/debian-$TARGETDIST $ZPOOL
 
-zfs create -o mountpoint=/tmp -o setuid=off -o exec=off -o devices=off -o com.sun:auto-snapshot=false -o quota=$SIZETMP $ZPOOL/tmp
+zfs create -o mountpoint=/tmp -o setuid=off -o exec=off -o devices=off -o com.sun:auto-snapshot=false $QUOTATMP $ZPOOL/tmp
 chmod 1777 /target/tmp
 
 # /var needs to be mounted via fstab, the ZFS mount script runs too late during boot
@@ -216,15 +231,17 @@ mkdir -v /target/var
 mount -t zfs $ZPOOL/var /target/var
 
 # /var/tmp needs to be mounted via fstab, the ZFS mount script runs too late during boot
-zfs create -o mountpoint=legacy -o com.sun:auto-snapshot=false -o quota=$SIZEVARTMP $ZPOOL/var/tmp
+zfs create -o mountpoint=legacy -o com.sun:auto-snapshot=false $QUOTAVARTMP $ZPOOL/var/tmp
 mkdir -v -m 1777 /target/var/tmp
 mount -t zfs $ZPOOL/var/tmp /target/var/tmp
 chmod 1777 /target/var/tmp
 
-zfs create -V $SIZESWAP -b "$(getconf PAGESIZE)" -o primarycache=metadata -o com.sun:auto-snapshot=false -o logbias=throughput -o sync=always $ZPOOL/swap
-# sometimes needed to wait for /dev/zvol/$ZPOOL/swap to appear
-sleep 2
-mkswap -f /dev/zvol/$ZPOOL/swap
+if [ -n "$FSTABSWAP" ]; then
+	zfs create -V $SIZESWAP -b "$(getconf PAGESIZE)" -o primarycache=metadata -o com.sun:auto-snapshot=false -o logbias=throughput -o sync=always $ZPOOL/swap
+	# sometimes needed to wait for /dev/zvol/$ZPOOL/swap to appear
+	sleep 2
+	mkswap -f /dev/zvol/$ZPOOL/swap
+fi
 
 zpool status
 zfs list
@@ -246,9 +263,9 @@ cat << EOF >/target/etc/fstab
 # that works even if disks are added and removed. See fstab(5).
 #
 # <file system>         <mount point>   <type>  <options>       <dump>  <pass>
-/dev/zvol/$ZPOOL/swap     none            swap    defaults        0       0
-$ZPOOL/var                /var            zfs     defaults        0       0
-$ZPOOL/var/tmp            /var/tmp        zfs     defaults        0       0
+$([ -n "$FSTABSWAP"] && echo "$FSTABSWAP" || echo -n "")
+$ZPOOL/var              /var            zfs     defaults        0       0
+$ZPOOL/var/tmp          /var/tmp        zfs     defaults        0       0
 EOF
 
 mount --rbind /dev /target/dev
