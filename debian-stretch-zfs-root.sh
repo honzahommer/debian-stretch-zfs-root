@@ -34,6 +34,7 @@ function hassize {
 
 : ${ZPOOL=rpool}
 : ${TARGETDIST=stretch}
+: ${ZPOOLROOT=debian-$TARGETDIST}
 
 : ${PARTBIOS=1}
 : ${PARTEFI=2}
@@ -219,8 +220,8 @@ zfs set compression=lz4 $ZPOOL
 #zfs set acltype=posixacl $ZPOOL
 
 zfs create $ZPOOL/ROOT
-zfs create -o mountpoint=/ $ZPOOL/ROOT/debian-$TARGETDIST
-zpool set bootfs=$ZPOOL/ROOT/debian-$TARGETDIST $ZPOOL
+zfs create -o mountpoint=/ $ZPOOL/ROOT/$ZPOOLROOT
+zpool set bootfs=$ZPOOL/ROOT/$ZPOOLROOT $ZPOOL
 
 zfs create -o mountpoint=/tmp -o setuid=off -o exec=off -o devices=off -o com.sun:auto-snapshot=false $QUOTATMP $ZPOOL/tmp
 chmod 1777 /target/tmp
