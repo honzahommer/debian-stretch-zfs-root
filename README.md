@@ -6,7 +6,7 @@ Installs Debian GNU/Linux 9 Stretch to a native ZFS root filesystem using a [Deb
 1. Boot [Stretch Live CD](https://www.debian.org/CD/live/)
 1. Login (user: `user`, password: `live`) and become root
 1. Setup network and export `http_proxy` environment variable (if needed)
-1. Run [this script](https://raw.githubusercontent.com/hn/debian-stretch-zfs-root/master/debian-stretch-zfs-root.sh)
+1. Run [this script](https://raw.githubusercontent.com/honzahommer/debian-stretch-zfs-root/master/debian-stretch-zfs-root.sh) or use [install script](https://raw.githubusercontent.com/honzahommer/debian-stretch-zfs-root/master/install.sh) (eg. `wget -qO- https://git.io/fjkh2 | sh`)
 1. User interface: Select disks and RAID level
 1. User interface: Decide if you want Legacy BIOS or EFI boot (only if your hardware supports EFI)
 1. Let the installer do the work
@@ -30,4 +30,3 @@ Installs Debian GNU/Linux 9 Stretch to a native ZFS root filesystem using a [Deb
 * https://github.com/hn/debian-jessie-zfs-root
 * https://github.com/zfsonlinux/zfs/wiki/Ubuntu-16.04-Root-on-ZFS
 * https://janvrany.github.io/2016/10/fun-with-zfs-part-1-installing-debian-jessie-on-zfs-root.html
-
